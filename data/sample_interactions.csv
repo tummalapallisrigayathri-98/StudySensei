@@ -1,0 +1,8 @@
+user_id,item_id,event_type,timestamp
+u1,i1,view,2025-11-01T10:00:00
+u1,i2,complete,2025-11-02T12:00:00
+u2,i2,view,2025-11-02T12:30:00
+u3,i3,complete,2025-11-03T09:00:00
+u2,i1,complete,2025-11-04T15:00:00
+u4,i4,view,2025-11-05T08:00:00
+u1,i3,view,2025-11-06T18:00:00
