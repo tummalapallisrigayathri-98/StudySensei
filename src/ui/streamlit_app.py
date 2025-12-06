@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 
-API_BASE = st.secrets.get('API_BASE', 'http://localhost:8000')
+API_BASE = st.secrets.get('API_BASE', 'https://studysensi-backend.onrender.com')
 
 
 st.set_page_config(page_title='StudySensi — Chat', page_icon=':mortar_board:')
