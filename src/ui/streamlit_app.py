@@ -39,4 +39,6 @@ reply = 'No recommendations found.'
 except Exception as e:
 reply = f'Error contacting backend: {e}'
 st.session_state.messages.append({'role': 'assistant', 'text': reply})
-st.markdown(f"**StudySensi:** {msg['text']}')
+for msg in st.session_state.messages:
+    st.markdown(f"**{msg['role'].capitalize()}:** {msg['text']}")
+
