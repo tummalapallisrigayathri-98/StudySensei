@@ -1,69 +1,60 @@
-# src/api/main.py
-from fastapi import FastAPI, HTTPException
+# src/backend/main.py
+
+from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import uvicorn
-import os
-import json
-from recommender.baselines import MostPopular
-from recommender.persistence import Persistence
+from fastapi.middleware.cors import CORSMiddleware
+from recommend import recommend_items
 
+# ------------------------------------------------------------
+# Create FastAPI App
+# ------------------------------------------------------------
 
-app = FastAPI(title="StudySensi Recommender API")
+app = FastAPI(
+    title="StudySensi Backend API",
+    description="API for recommending next learning items",
+    version="1.0.0"
+)
 
+# ------------------------------------------------------------
+# CORS (required for Streamlit or any web UI)
+# ------------------------------------------------------------
 
-DATA_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data')
-SAMPLE_INTERACTIONS = os.path.join(DATA_PATH, 'sample_interactions.csv')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],        # you can lock this later
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# ------------------------------------------------------------
+# Request Model
+# ------------------------------------------------------------
 
-# Initialize simple persistence & recommender
-p = Persistence(interactions_path=SAMPLE_INTERACTIONS)
-recommender = MostPopular(p)
+class RequestBody(BaseModel):
+    user_id: str
+    query: str
+    k: int = 5
 
+# ------------------------------------------------------------
+# API Endpoint: /api/recommend
+# ------------------------------------------------------------
 
-# Simple in-memory items metadata (toy). In real project, move to DB
-ITEMS = {
-"i1": {"title": "Intro to Python", "type": "course", "tags": ["python","basics"]},
-"i2": {"title": "Data Structures - Exercises", "type": "exercise", "tags": ["algorithms","ds"]},
-"i3": {"title": "Machine Learning Foundations", "type": "course", "tags": ["ml","basics"]},
-"i4": {"title": "Reinforcement Learning - Overview", "type": "course", "tags": ["rl"]}
-}
+@app.post("/api/recommend")
+def recommend_api(body: RequestBody):
+    """
+    Returns top-k recommended items for a user and query.
+    """
+    try:
+        recs = recommend_items(body.user_id, body.query, body.k)
+        return {"recommendations": recs}
+    except Exception as e:
+        return {"error": str(e)}
 
+# ------------------------------------------------------------
+# Health Check (optional)
+# ------------------------------------------------------------
 
-class RecoRequest(BaseModel):
-user_id: str
-query: Optional[str] = None
-context: Optional[Dict[str, Any]] = None
-k: Optional[int] = 5
-
-
-class LogEvent(BaseModel):
-user_id: str
-item_id: str
-event_type: str
-timestamp: str
-
-
-@app.post('/api/recommend')
-def recommend(req: RecoRequest):
-# For MVP: use simple MostPopular recommender with optional topic filtering
-candidates = recommender.get_top_k(k=req.k)
-
-
-# If query contains a tag (simple matching), boost items with matching tags
-if req.query:
-q = req.query.lower()
-boosted = []
-for it in candidates:
-tags = ITEMS.get(it, {}).get('tags', [])
-if any(q in t for t in tags) or q in ITEMS.get(it, {}).get('title','').lower():
-boosted.append(it)
-# put boosted first, preserve order
-final = boosted + [x for x in candidates if x not in boosted]
-else:
-final = candidates
-
-
-results = []
-for item_id in final[:req.k]:
-uvicorn.run('src.api.main:app', host='0.0.0.0', port=8000, reload=True)
+@app.get("/")
+def home():
+    return {"message": "StudySensi backend running!"}
